@@ -20,13 +20,13 @@ public class VotingItemServiceImpl implements VotingItemService {
     private final VotingItemRepository votingItemRepository;
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public List<VotingItemDTO> getAllItems() {
         return votingItemRepository.findAll();
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public VotingItemDTO getItem(Long itemId) {
         return votingItemRepository.findById(itemId)
                 .orElseThrow(() -> new BusinessException("找不到指定的投票項目 (ID: " + itemId + ")"));

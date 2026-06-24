@@ -2,12 +2,13 @@ package com.example.vote.repository;
 
 import com.example.vote.dto.VotingRecordDTO;
 import lombok.RequiredArgsConstructor;
+import org.springframework.jdbc.core.SqlParameter;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcCall;
-import org.springframework.jdbc.support.rowset.SqlRowSet;
 import org.springframework.stereotype.Repository;
 
 import javax.sql.DataSource;
+import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -16,6 +17,10 @@ import java.util.List;
  *
  * 使用 SimpleJdbcCall 呼叫 sp_vote_cast / sp_record_list，
  * 參數皆以繫結方式傳遞，避免 SQL Injection。
+ *
+ * 明確宣告參數與回傳的 ResultSet (withoutProcedureColumnMetaDataAccess +
+ * declareParameters/returningResultSet)，避免 SimpleJdbcCall 自動探測
+ * MySQL Stored Procedure metadata 時在某些環境下解析失敗。
  */
 @Repository
 @RequiredArgsConstructor
@@ -26,7 +31,12 @@ public class VotingRecordRepositoryImpl implements VotingRecordRepository {
     @Override
     public void castVote(String voterName, Long itemId) {
         SimpleJdbcCall call = new SimpleJdbcCall(dataSource)
-                .withProcedureName("sp_vote_cast");
+                .withProcedureName("sp_vote_cast")
+                .withoutProcedureColumnMetaDataAccess()
+                .declareParameters(
+                        new SqlParameter("p_voter_name", Types.VARCHAR),
+                        new SqlParameter("p_item_id", Types.BIGINT)
+                );
 
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("p_voter_name", voterName)
@@ -40,21 +50,10 @@ public class VotingRecordRepositoryImpl implements VotingRecordRepository {
     @Override
     public List<VotingRecordDTO> findAll(Long itemId) {
         SimpleJdbcCall call = new SimpleJdbcCall(dataSource)
-                .withProcedureName("sp_record_list");
-
-        MapSqlParameterSource params = new MapSqlParameterSource()
-                .addValue("p_item_id", itemId);
-
-        SqlRowSet rs = call.execute(params).values().stream()
-                .filter(v -> v instanceof SqlRowSet)
-                .map(v -> (SqlRowSet) v)
-                .findFirst()
-                .orElse(null);
-
-        List<VotingRecordDTO> result = new ArrayList<>();
-        if (rs != null) {
-            while (rs.next()) {
-                result.add(VotingRecordDTO.builder()
+                .withProcedureName("sp_record_list")
+                .withoutProcedureColumnMetaDataAccess()
+                .declareParameters(new SqlParameter("p_item_id", Types.BIGINT))
+                .returningResultSet("#result-set-1", (rs, rowNum) -> VotingRecordDTO.builder()
                         .recordId(rs.getLong("record_id"))
                         .voterName(rs.getString("voter_name"))
                         .itemId(rs.getLong("item_id"))
@@ -63,8 +62,13 @@ public class VotingRecordRepositoryImpl implements VotingRecordRepository {
                                 ? rs.getTimestamp("voted_at").toLocalDateTime()
                                 : null)
                         .build());
-            }
-        }
-        return result;
+
+        MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("p_item_id", itemId);
+
+        @SuppressWarnings("unchecked")
+        List<VotingRecordDTO> result = (List<VotingRecordDTO>) call.execute(params).get("#result-set-1");
+
+        return result != null ? result : new ArrayList<>();
     }
 }

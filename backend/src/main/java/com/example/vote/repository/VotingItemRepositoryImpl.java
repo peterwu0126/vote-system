@@ -5,11 +5,14 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcCall;
-import org.springframework.jdbc.support.rowset.SqlRowSet;
+import org.springframework.jdbc.core.SqlOutParameter;
 import org.springframework.stereotype.Repository;
 
 import javax.sql.DataSource;
 import java.math.BigInteger;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Types;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -21,6 +24,10 @@ import java.util.Optional;
  * 使用 Spring JDBC 的 SimpleJdbcCall 呼叫 Stored Procedure。
  * 所有參數皆以 IN/OUT 參數繫結傳遞，不進行任何字串拼接 SQL，
  * 從根本上防止 SQL Injection。
+ *
+ * 注意：對於沒有 IN/OUT 參數、純粹回傳 ResultSet 的 SP (如 sp_item_list)，
+ * 明確呼叫 .withoutProcedureColumnMetaDataAccess()，避免 SimpleJdbcCall
+ * 自動探測 metadata 時在某些 MySQL 環境下解析失敗導致取不到結果集。
  */
 @Repository
 @RequiredArgsConstructor
@@ -31,39 +38,32 @@ public class VotingItemRepositoryImpl implements VotingItemRepository {
     @Override
     public List<VotingItemDTO> findAll() {
         SimpleJdbcCall call = new SimpleJdbcCall(dataSource)
-                .withProcedureName("sp_item_list");
+                .withProcedureName("sp_item_list")
+                .withoutProcedureColumnMetaDataAccess()
+                .returningResultSet("#result-set-1", (rs, rowNum) -> mapRow(rs));
 
-        SqlRowSet rs = call.execute().values().stream()
-                .filter(v -> v instanceof SqlRowSet)
-                .map(v -> (SqlRowSet) v)
-                .findFirst()
-                .orElse(null);
+        @SuppressWarnings("unchecked")
+        List<VotingItemDTO> result = (List<VotingItemDTO>) call.execute().get("#result-set-1");
 
-        List<VotingItemDTO> result = new ArrayList<>();
-        if (rs != null) {
-            while (rs.next()) {
-                result.add(mapRow(rs));
-            }
-        }
-        return result;
+        return result != null ? result : new ArrayList<>();
     }
 
     @Override
     public Optional<VotingItemDTO> findById(Long itemId) {
         SimpleJdbcCall call = new SimpleJdbcCall(dataSource)
-                .withProcedureName("sp_item_get");
+                .withProcedureName("sp_item_get")
+                .withoutProcedureColumnMetaDataAccess()
+                .declareParameters(new org.springframework.jdbc.core.SqlParameter("p_item_id", Types.BIGINT))
+                .returningResultSet("#result-set-1", (rs, rowNum) -> mapRow(rs));
 
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("p_item_id", itemId);
 
-        SqlRowSet rs = call.execute(params).values().stream()
-                .filter(v -> v instanceof SqlRowSet)
-                .map(v -> (SqlRowSet) v)
-                .findFirst()
-                .orElse(null);
+        @SuppressWarnings("unchecked")
+        List<VotingItemDTO> result = (List<VotingItemDTO>) call.execute(params).get("#result-set-1");
 
-        if (rs != null && rs.next()) {
-            return Optional.of(mapRow(rs));
+        if (result != null && !result.isEmpty()) {
+            return Optional.of(result.get(0));
         }
         return Optional.empty();
     }
@@ -71,7 +71,12 @@ public class VotingItemRepositoryImpl implements VotingItemRepository {
     @Override
     public Long create(String itemName) {
         SimpleJdbcCall call = new SimpleJdbcCall(dataSource)
-                .withProcedureName("sp_item_create");
+                .withProcedureName("sp_item_create")
+                .withoutProcedureColumnMetaDataAccess()
+                .declareParameters(
+                        new org.springframework.jdbc.core.SqlParameter("p_item_name", Types.VARCHAR),
+                        new SqlOutParameter("p_new_id", Types.BIGINT)
+                );
 
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("p_item_name", itemName);
@@ -90,7 +95,12 @@ public class VotingItemRepositoryImpl implements VotingItemRepository {
     @Override
     public int update(Long itemId, String itemName) {
         SimpleJdbcCall call = new SimpleJdbcCall(dataSource)
-                .withProcedureName("sp_item_update");
+                .withProcedureName("sp_item_update")
+                .withoutProcedureColumnMetaDataAccess()
+                .declareParameters(
+                        new org.springframework.jdbc.core.SqlParameter("p_item_id", Types.BIGINT),
+                        new org.springframework.jdbc.core.SqlParameter("p_item_name", Types.VARCHAR)
+                );
 
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("p_item_id", itemId)
@@ -104,7 +114,9 @@ public class VotingItemRepositoryImpl implements VotingItemRepository {
     @Override
     public int softDelete(Long itemId) {
         SimpleJdbcCall call = new SimpleJdbcCall(dataSource)
-                .withProcedureName("sp_item_delete");
+                .withProcedureName("sp_item_delete")
+                .withoutProcedureColumnMetaDataAccess()
+                .declareParameters(new org.springframework.jdbc.core.SqlParameter("p_item_id", Types.BIGINT));
 
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("p_item_id", itemId);
@@ -114,7 +126,7 @@ public class VotingItemRepositoryImpl implements VotingItemRepository {
         return findById(itemId).isEmpty() ? 1 : 0;
     }
 
-    private VotingItemDTO mapRow(SqlRowSet rs) {
+    private VotingItemDTO mapRow(ResultSet rs) throws SQLException {
         return VotingItemDTO.builder()
                 .itemId(rs.getLong("item_id"))
                 .itemName(rs.getString("item_name"))

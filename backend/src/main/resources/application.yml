@@ -12,8 +12,8 @@ spring:
 
   datasource:
     url: jdbc:mysql://localhost:3306/vote_system?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Taipei&useSSL=false&allowPublicKeyRetrieval=true
-    username: ${DB_USERNAME:vote_user}
-    password: ${DB_PASSWORD:vote_pass}
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:123456}
     driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:
       maximum-pool-size: 10

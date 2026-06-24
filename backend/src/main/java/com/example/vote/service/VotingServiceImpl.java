@@ -69,7 +69,7 @@ public class VotingServiceImpl implements VotingService {
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public List<VotingRecordDTO> getRecords(Long itemId) {
         return votingRecordRepository.findAll(itemId);
     }
