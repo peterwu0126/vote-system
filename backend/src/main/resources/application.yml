@@ -1,0 +1,34 @@
+server:
+  port: 8080
+  servlet:
+    encoding:
+      charset: UTF-8
+      enabled: true
+      force: true
+
+spring:
+  application:
+    name: vote-system
+
+  datasource:
+    url: jdbc:mysql://localhost:3306/vote_system?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Taipei&useSSL=false&allowPublicKeyRetrieval=true
+    username: ${DB_USERNAME:vote_user}
+    password: ${DB_PASSWORD:vote_pass}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 30000
+
+  jackson:
+    default-property-inclusion: non_null
+
+logging:
+  level:
+    root: INFO
+    com.example.vote: DEBUG
+
+# 自訂 CORS 設定（供前端 Vue.js 開發伺服器使用）
+app:
+  cors:
+    allowed-origins: http://localhost:5173,http://localhost:3000

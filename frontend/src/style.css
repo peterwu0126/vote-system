@@ -1,0 +1,79 @@
+/* =====================================================================
+   線上投票系統 - 設計系統
+   概念：正式選票/證書質感 — 暖紙色背景 + 墨藍主色 + 印章紅點綴
+   字體：標題用襯線(正式感) + 內文用無襯線(易讀) + 數字用等寬(票數)
+   ===================================================================== */
+
+:root {
+  /* 色彩 token */
+  --color-paper: #F6F1E7;       /* 暖紙背景 */
+  --color-paper-deep: #EDE5D3;  /* 卡片底色 */
+  --color-ink: #1F2A44;         /* 墨藍 - 主要文字/標題 */
+  --color-ink-soft: #4A5572;    /* 次要文字 */
+  --color-seal: #B23A2E;        /* 印章紅 - 強調/動作 */
+  --color-seal-deep: #8C2C22;
+  --color-line: #C9BFA8;        /* 分隔線 */
+  --color-success: #3D6B4C;
+
+  /* 字體 token */
+  --font-display: 'Noto Serif TC', 'Source Han Serif TC', Georgia, serif;
+  --font-body: 'Noto Sans TC', 'Source Han Sans TC', -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Courier New', monospace;
+
+  /* 間距 */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 16px;
+  --space-4: 24px;
+  --space-5: 40px;
+  --space-6: 64px;
+
+  --radius: 3px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+#app {
+  min-height: 100vh;
+}
+
+a {
+  color: inherit;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+input, textarea {
+  font-family: inherit;
+}
+
+/* 鍵盤可視焦點 - 無障礙基本門檻 */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--color-seal);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
