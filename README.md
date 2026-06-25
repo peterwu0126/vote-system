@@ -92,7 +92,7 @@ vote-system/
 如果終端機回報 `'java'`、`'mvn'` 或 `'mysql'` 不是內部或外部命令：
 
 1. **Java**：建議用 [Eclipse Temurin JDK 21](https://adoptium.net/temurin/releases/?version=21) 的 `.msi` 安裝檔，安裝時勾選 **Add to PATH**，可省去手動設定環境變數。
-2. **Maven**：[官方下載頁](https://maven.apache.org/download.cgi) 下載 zip 解壓縮後，需**手動**把 `bin` 路徑加進系統 `Path` 環境變數（注意：是編輯已存在的 `Path` 變數，不是新建一個叫 `maven` 的變數）。
+2. **Maven**：[官方下載頁](https://maven.apache.org/download.cgi) 下載 zip 解壓縮後，需**手動**把 `bin` 路徑加進系統 `Path` 環境變數。
 3. **MySQL**：安裝完成後同樣需要把 `bin` 路徑加進 `Path`，才能在任何路徑下直接執行 `mysql` 指令。
 
 加完環境變數後，**務必關閉所有終端機視窗、重新開一個新的**才會生效。
@@ -103,7 +103,7 @@ vote-system/
 
 ### 1. 建立資料庫
 
-用終端機（不是 GUI 工具的 SQL 編輯器，避免 `DELIMITER` 解析問題）執行：
+用終端機或GUI 工具的 SQL 編輯器執行：
 
 ```bash
 cd DB
@@ -217,6 +217,3 @@ http://localhost:5173
 - **XSS**：前端 Vue 模板插值預設自動 HTML escape，且未使用 `v-html`；後端額外使用 `XssSanitizer`（基於 OWASP Encoder）對輸入進行二次清洗，並以 Bean Validation（`@Pattern`/`@Size`）限制輸入格式。
 - **Transaction**：多選投票（`VotingServiceImpl.vote()`）對每個選中項目逐一呼叫 `sp_vote_cast`（單項目原子操作：寫入投票紀錄 + 累加票數），整個迴圈包覆在 `@Transactional` 範圍內，任一項目失敗即整批回滾，避免部分成功的資料不一致。
 
-## License
-
-本專案為教學/練習用範例專案。
